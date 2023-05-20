@@ -1,0 +1,25 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: cityapp
+spec: {}
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: cityapp
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: cityapp:latest
+  resources: {}
+  source:
+    git:
+      ref: main
+      uri: https://github.com/joetanx/cityapp-php.git
+    type: Git
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile

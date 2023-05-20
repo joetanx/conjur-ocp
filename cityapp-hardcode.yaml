@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hardcode
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hardcode
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      deployment: hardcode
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        deployment: hardcode
+    spec:
+      serviceAccount: hardcode
+      containers:
+      - env:
+        - name: DBADDR
+          value: mysql.vx
+        - name: DBPASS
+          value: Cyberark1
+        - name: DBUSER
+          value: cityapp
+        image: 'image-registry.openshift-image-registry.svc:5000/cityapp/cityapp:latest'
+        name: hardcode
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        resources: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hardcode
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    deployment: hardcode
+  type: LoadBalancer
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: hardcode
+spec:
+  port:
+    targetPort: 8080
+  to:
+    kind: Service
+    name: hardcode
