@@ -27,7 +27,7 @@ spec:
           value: Cyberark1
         - name: DBUSER
           value: cityapp
-        image: 'image-registry.openshift-image-registry.svc:5000/cityapp/cityapp:latest'
+        image: docker.io/joetanx/cityapp:php
         name: hardcode
         ports:
         - containerPort: 8080
