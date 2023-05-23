@@ -63,7 +63,7 @@
   owner: !group ocp-admins
   body:
   # Define an identity in Conjur for the Conjur Kubernetes Follower
-  # Ref: https://docs.cyberark.com/Product-Doc/OnlineHelp/AAM-DAP/Latest/en/Content/Integrations/k8s-ocp/k8s-k8sfollower-dply.htm
+  # Ref: https://docs.cyberark.com/Product-Doc/OnlineHelp/AAM-DAP/Latest/en/Content/Integrations/k8s-ocp/k8s-conjfollower.htm
   - !host
     id: system:serviceaccount:conjur:follower
     annotations:
