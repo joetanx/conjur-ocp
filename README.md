@@ -37,52 +37,59 @@ Setup Conjur master according to this guide: <https://github.com/joetanx/setup/b
 
 ### 2.1. Configure and enable JWT authenticator
 
-The policy `authn-jwt-k8s.yaml` performs the following:
+The policy `authn-jwt-ocp.yaml` performs the following:
 
 1. Define the JWT authenticator endpoint in Conjur
 
 - Ref: [2. Define the JWT Authenticator endpoint in Conjur](https://docs.cyberark.com/Product-Doc/OnlineHelp/AAM-DAP/Latest/en/Content/Integrations/k8s-ocp/k8s-jwt-authn.htm#ConfiguretheJWTAuthenticator)
-- Creates `conjur/authn-jwt/k8s` policy with the necessary variables
+- Creates `conjur/authn-jwt/ocp` policy with the necessary variables
 - Creates the `webservice` for the authenticator with `consumers` group allowed to authenticate to the webservice
 
 2. Enable the seed generation service
 
-- Ref: [6. Enable the seed generation service](https://docs.cyberark.com/Product-Doc/OnlineHelp/AAM-DAP/Latest/en/Content/Integrations/k8s-ocp/k8s-jwt-authn.htm#ConfiguretheJWTAuthenticator)
+- Ref: [Enable the seed generation service](https://docs.cyberark.com/Product-Doc/OnlineHelp/AAM-DAP/Latest/en/Content/Deployment/cnj-seedservice.htm)
 - Creates `conjur/seed-generation` policy
 - Creates the `webservice` for the seed generation with `consumers` group allowed to authenticate to the webservice
 
-3. Define `jwt-apps/k8s` policy with:
+3. Define `jwt-apps/ocp` policy with:
 
 - Conjur Follower in Kubernetes identified by `system:serviceaccount:conjur:follower`
-  - Ref: [2. Define an identity in Conjur for the Conjur Follower](https://docs.cyberark.com/Product-Doc/OnlineHelp/AAM-DAP/Latest/en/Content/Integrations/k8s-ocp/k8s-jwt-follower.htm)
-  - The Conjur Follower is granted access to the JWT authenticator `conjur/authn-jwt/k8s` and seed generation `conjur/seed-generation` webservices by adding it into `consumers` group of respective webservices
+  - Ref: [2. Define an identity in Conjur for the Conjur Follower](https://docs.cyberark.com/Product-Doc/OnlineHelp/AAM-DAP/Latest/en/Content/Integrations/k8s-ocp/k8s-conjfollower.htm)
+  - The Conjur Follower is granted access to the JWT authenticator `conjur/authn-jwt/ocp` and seed generation `conjur/seed-generation` webservices by adding it into `consumers` group of respective webservices
 - Demo application `cityapp-secretsprovider` and `cityapp-secretless` identified by `system:serviceaccount:cityapp:cityapp-secretsprovider` and `system:serviceaccount:cityapp:cityapp-secretless`
   - Ref: [2. Define the application as a Conjur host in policy + 3.Grant access to secrets](https://docs.cyberark.com/Product-Doc/OnlineHelp/AAM-DAP/Latest/en/Content/Integrations/k8s-ocp/cjr-k8s-authn-client-authjwt.htm#Setuptheapplicationtoretrievesecrets)
-  - The demo applications are granted access to the JWT authenticator `conjur/authn-jwt/k8s` and demo database secrets `db_cityapp` by adding them to `consumers` group of respective webservice and policy
+  - The demo applications are granted access to the JWT authenticator `conjur/authn-jwt/ocp` and demo database secrets `db_cityapp` by adding them to `consumers` group of respective webservice and policy
 
-> **Note**: `authn-jwt-k8s.yaml` builds on top of `app-vars.yaml` in <https://github.com/joetanx/conjur-master>
+> **Note**: `authn-jwt-ocp.yaml` builds on top of `app-vars.yaml` in <https://github.com/joetanx/conjur-master>
 > 
-> Loading `authn-jwt-k8s.yaml` without having `app-vars.yaml` loaded previously will not work
+> Loading `authn-jwt-ocp.yaml` without having `app-vars.yaml` loaded previously will not work
 
 Download and load the Conjur policy:
 
 ```console
-curl -O https://raw.githubusercontent.com/joetanx/conjur-k8s/main/authn-jwt-k8s.yaml
-conjur policy load -f authn-jwt-k8s.yaml -b root && rm -f authn-jwt-k8s.yaml
+curl -O https://raw.githubusercontent.com/joetanx/conjur-ocp/main/authn-jwt-ocp.yaml
+conjur policy load -f authn-jwt-ocp.yaml -b root && rm -f authn-jwt-ocp.yaml
 ```
 
 ### 2.2. Populate the variables required by the JWT Authenticator
 
 Ref: [3. Populate the policy variables](https://docs.cyberark.com/Product-Doc/OnlineHelp/AAM-DAP/Latest/en/Content/Integrations/k8s-ocp/k8s-jwt-authn.htm#ConfiguretheJWTAuthenticator)
 
+Retrieve the JWKS public keys and JWT issuer information from Openshift:
+
 ```console
-PUBLIC_KEYS="$(kubectl get --raw $(kubectl get --raw /.well-known/openid-configuration | jq -r '.jwks_uri'))"
-ISSUER="$(kubectl get --raw /.well-known/openid-configuration | jq -r '.issuer')"
-conjur variable set -i conjur/authn-jwt/k8s/public-keys -v "{\"type\":\"jwks\", \"value\":$PUBLIC_KEYS}"
-conjur variable set -i conjur/authn-jwt/k8s/issuer -v $ISSUER
-conjur variable set -i conjur/authn-jwt/k8s/token-app-property -v sub
-conjur variable set -i conjur/authn-jwt/k8s/identity-path -v jwt-apps/k8s
-conjur variable set -i conjur/authn-jwt/k8s/audience -v vxlab
+oc get --raw $(oc get --raw /.well-known/openid-configuration | jq -r '.jwks_uri') > jwks.json
+oc get --raw /.well-known/openid-configuration | jq -r '.issuer'
+```
+
+Populate the variables with the information retrieved from Openshift
+
+```console
+conjur variable set -i conjur/authn-jwt/ocp/public-keys -v "{\"type\":\"jwks\", \"value\":$(cat jwks.json)}" && rm -f jwks.json
+conjur variable set -i conjur/authn-jwt/ocp/issuer -v https://kubernetes.default.svc
+conjur variable set -i conjur/authn-jwt/ocp/token-app-property -v sub
+conjur variable set -i conjur/authn-jwt/ocp/identity-path -v jwt-apps/ocp
+conjur variable set -i conjur/authn-jwt/ocp/audience -v vxlab
 ```
 
 ### 2.3. Allowlist the JWT authenticator in Conjur
@@ -112,11 +119,20 @@ The Conjur master and follower information is passed to the follower and applica
 
 #### 2.4.1. Prepare the environment in Kubernetes
 
-Prepare the namespace `conjur` and `cityapp`, and service account `follower`:
+Prepare the projects `conjur` and `cityapp`, and service account `follower`:
 
 ```console
-kubectl apply -f https://raw.githubusercontent.com/joetanx/conjur-k8s/main/k8s-env-prep.yaml
+oc new-project conjur
+oc new-project cityapp
+oc -n conjur create serviceaccount follower
+oc -n conjur adm policy add-scc-to-user -z follower privileged
 ```
+
+> **Note**: Conjur Follower needs to run as a privileged container
+>
+> Ref: [How to run privileged container in Openshift 4](https://access.redhat.com/solutions/6375251)
+> 
+> If non-root container is required, consider deploying the [Kubernetes Follower](https://docs.cyberark.com/Product-Doc/OnlineHelp/AAM-DAP/Latest/en/Content/Integrations/k8s-ocp/k8s-k8sfollower-dply.htm) instead
 
 #### 2.4.2. Prepare the necessary values as environments variables to be loaded into ConfigMaps:
 
@@ -124,10 +140,10 @@ kubectl apply -f https://raw.githubusercontent.com/joetanx/conjur-k8s/main/k8s-e
 CA_CERT="$(curl https://raw.githubusercontent.com/joetanx/conjur-k8s/main/central.pem)"
 CONJUR_MASTER_URL=https://conjur.vx
 CONJUR_FOLLOWER_URL=https://follower.conjur.svc.cluster.local
-AUTHENTICATOR_ID=k8s
+AUTHENTICATOR_ID=ocp
 CONJUR_ACCOUNT=cyberark
 CONJUR_SEED_FILE_URL=$CONJUR_MASTER_URL/configuration/$CONJUR_ACCOUNT/seed/follower
-CONJUR_AUTHN_URL=$CONJUR_FOLLOWER_URL/authn-jwt/k8s
+CONJUR_AUTHN_URL=$CONJUR_FOLLOWER_URL/authn-jwt/ocp
 ```
 
 > **Note** on `CONJUR_SSL_CERTIFICATE`:
@@ -140,7 +156,7 @@ CONJUR_AUTHN_URL=$CONJUR_FOLLOWER_URL/authn-jwt/k8s
 Ref: [3. Set up a ConfigMap](https://docs.cyberark.com/Product-Doc/OnlineHelp/AAM-DAP/Latest/en/Content/Integrations/k8s-ocp/k8s-jwt-follower.htm)):
 
 ```console
-kubectl -n conjur create configmap follower-cm \
+oc -n conjur create configmap follower-cm \
 --from-literal CONJUR_ACCOUNT=$CONJUR_ACCOUNT \
 --from-literal CONJUR_APPLIANCE_URL=$CONJUR_MASTER_URL \
 --from-literal CONJUR_SEED_FILE_URL=$CONJUR_SEED_FILE_URL \
@@ -155,72 +171,39 @@ Ref:
 - [CyberArk raw manifest repository](https://github.com/cyberark/conjur-authn-k8s-client/blob/master/helm/conjur-config-namespace-prep/generated/conjur-config-namespace-prep.yaml)
 
 ```console
-kubectl -n cityapp create configmap apps-cm \
+oc -n cityapp create configmap apps-cm \
 --from-literal CONJUR_ACCOUNT=$CONJUR_ACCOUNT \
 --from-literal CONJUR_APPLIANCE_URL=$CONJUR_FOLLOWER_URL \
 --from-literal CONJUR_AUTHN_URL=$CONJUR_AUTHN_URL \
 --from-literal "CONJUR_SSL_CERTIFICATE=${CA_CERT}"
 ```
 
-### 2.5. Optional - add static host entries in CoreDNS
-
-- The `dap-seedfetcher` container uses `wget` to retrieve the seed file from Conjur Master.
-- Depending on network configurations, some dual stacked kubernetes may not be able to resolve static host entries in DNS properly, causing `wget: unable to resolve host address` error.
-- This is seen in my lab using Sophos Firewall with my Conjur Master FQDN configured as an IPv4 A record. The wget attempts to resolve for both A and AAAA; Sophos Firewall replies to AAAA with an NXDOMAIN response, causing wget to fail.
-- This dual-stack behaviour is somewhat explained in: <https://umbrella.cisco.com/blog/dual-stack-search-domains-host-roulette>
-- We can ensure resolution of our Conjur Master FQDN by loading it into the Kubernetes CoreDNS. Ref: <https://coredns.io/plugins/hosts/>
-
-```console
-kubectl edit cm coredns -n kube-system
-```
-
-Add the hosts portion into the Corefile section:
-
-```console
-  Corefile: |
-    .:53 {
-        errors
-        health {
-           lameduck 5s
-        }
-        ready
-        kubernetes cluster.local in-addr.arpa ip6.arpa {
-           pods insecure
-           fallthrough in-addr.arpa ip6.arpa
-           ttl 30
-        }
-        prometheus :9153
-        forward . /etc/resolv.conf {
-           max_concurrent 1000
-        }
-        cache 30
-        loop
-        reload
-        loadbalance
-        hosts {
-           192.168.17.90 conjur.vx
-           192.168.17.90 mysql.vx
-           fallthrough
-        }
-    }
-```
-
-Restart the CoreDNS deployment:
-
-```console
-kubectl rollout restart deploy coredns -n kube-system
-```
-
 ## 3. Deploy the follower
+
+### 3.1. Setup the Conjur Follower image in Openshift
+
+The Conjur appliance image need to be pushed to the Openshift image registry
+
+Ref: [Accessing the registry](https://docs.openshift.com/container-platform/4.13/registry/accessing-the-registry.html)
+
+```console
+podman load -i conjur-appliance-Rls-v13.0.tar.gz && rm -f conjur-appliance-Rls-v13.0.tar.gz
+podman tag registry.tld/conjur-appliance:13.0.0.1 image-registry.openshift-image-registry.svc:5000/conjur/conjur-appliance:13.0.0.1
+oc login -u kubeadmin -p <password_from_install_log> https://api-int.<cluster_name>.<base_domain>:6443
+podman login -u kubeadmin -p $(oc whoami -t) image-registry.openshift-image-registry.svc:5000
+podman push image-registry.openshift-image-registry.svc:5000/conjur/conjur-appliance:13.0.0.1
+```
+
+### 3.2. Apply the follower deployment
 
 The `follower.yaml` manifest defines the necessary configurations to deploy the Conjur Follower into Kubernetes; review the file and read the ref link to understand how it works
 
-Ref: [4. Set up the Follower service and deployment manifest](https://docs.cyberark.com/Product-Doc/OnlineHelp/AAM-DAP/Latest/en/Content/Integrations/k8s-ocp/k8s-jwt-follower.htm)
+Ref: [4. Set up the Follower service and deployment manifest](https://docs.cyberark.com/Product-Doc/OnlineHelp/AAM-DAP/Latest/en/Content/Integrations/k8s-ocp/k8s-conjfollower.htm)
 
 Deploy the manifest file into the Kubernetes cluster:
 
 ```console
-kubectl -n conjur apply -f https://raw.githubusercontent.com/joetanx/conjur-k8s/main/follower.yaml
+kubectl -n conjur apply -f https://raw.githubusercontent.com/joetanx/conjur-ocp/main/follower.yaml
 ```
 
 ## 4. Preparing for cityapp deployment
@@ -229,21 +212,25 @@ The cityapp application is used to demostrate the various scenarios: hard-coded,
 
 The deployment manifest files in this repo is configured use `docker.io/joetanx/cityapp:php`
 
-### 4.1. Optional - build cityapp container image
+### 4.1. Optional - using Openshift Source-to-Image S2I) to build cityapp container image
 
 To build the container image from [source](https://github.com/joetanx/cityapp-php)
 
+The BuildConfig `cityapp-buildconfig.yaml` provided in this repository defines the S2I manifest
+
+Apply it and `start-build` to build the image and push it to the Openshift image registry:
+
 ```console
-curl -O https://raw.githubusercontent.com/joetanx/cityapp-php/main/Dockerfile
-curl -O https://raw.githubusercontent.com/joetanx/cityapp-php/main/index.php
-podman build -t cityapp:php .
-rm -rf Dockerfile index.php
+oc -n cityapp apply -f https://raw.githubusercontent.com/joetanx/conjur-ocp/main/cityapp-buildconfig.yaml
+oc start-build cityapp
 ```
+
+> **Note**: Change the image definition in the `cityapp-<type>.yaml` manifests from `docker.io/joetanx/cityapp:php` to `image-registry.openshift-image-registry.svc:5000/cityapp/cityapp:latest` to use the S2I image
 
 ## 5. Deploy cityapp-hardcode
 
 ```console
-kubectl -n cityapp apply -f https://raw.githubusercontent.com/joetanx/conjur-k8s/main/cityapp-hardcode.yaml
+oc -n cityapp apply -f https://raw.githubusercontent.com/joetanx/conjur-ocp/main/cityapp-hardcode.yaml
 ```
 
 Verify that the application is deployed successfully:
