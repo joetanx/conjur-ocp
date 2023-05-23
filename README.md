@@ -235,22 +235,22 @@ oc -n cityapp apply -f https://raw.githubusercontent.com/joetanx/conjur-ocp/main
 
 Verify that the application is deployed successfully:
 
-```console
-kubectl -n cityapp get pods -o wide
-```
+![image](https://github.com/joetanx/conjur-ocp/assets/90442032/264f80eb-beaf-4033-baab-4048069b9108)
 
-Browse to the Kubernetes node on port 30080 `http://<kube-node-fqdn>:30080` to verify that the application is working
+Open the application location (e.g. `http://hardcode-cityapp.apps.sno.vx/`)
 - The cityapp connects to the MySQL world database to display random city information
 - The database, username and password information is displayed for debugging, and the application is using the credentials hardcoded in the pod environment variables
 
-![image](images/pageCityappHardCoded.png)
+![image](https://github.com/joetanx/conjur-ocp/assets/90442032/42c3759f-b6a7-4eef-8be4-32169b5c4c92)
 
 Rotate the password on the MySQL server and update the new password in Conjur:
 
 | Target | Command |
 | --- | --- |
-| MySQL Server | `mysql -u root -e "ALTER USER 'cityapp'@'%' IDENTIFIED BY 'qBIs3urqM0aG';"` |
-| Conjur | `conjur variable set -i db_cityapp/password -v qBIs3urqM0aG` |
+| MySQL Server | `mysql -u root -e "ALTER USER 'cityapp'@'%' IDENTIFIED BY 'VkDv6FctHvUp';"` |
+| Conjur | `conjur variable set -i db_cityapp/password -v VkDv6FctHvUp` |
+
+> **Note** Conjur can integrate with CyberArk PAM for automatic [secrets rotation](https://docs.cyberark.com/Product-Doc/OnlineHelp/AAM-DAP/Latest/en/Content/Operations/Services/rotate-secrets.htm)
 
 Refresh the cityapp-hardcode page: the page will throw an authentication error, since the hard-coded credentials are no longer valid:
 
@@ -262,23 +262,21 @@ SQLSTATE[HY000] [1045] Access denied for user 'cityapp'@'10.244.0.6' (using pass
 
 Ref: [Secrets Provider - Push-to-File mode](https://docs.cyberark.com/Product-Doc/OnlineHelp/AAM-DAP/Latest/en/Content/Integrations/k8s-ocp/cjr-k8s-jwt-sp-ic-p2f.htm)
 
-![image](images/architectureCityappSecretsProvider.png)
+![image](https://github.com/joetanx/conjur-ocp/assets/90442032/d9f2798e-8dba-488e-9d8e-d741fbf0443f)
 
 ```console
-kubectl -n cityapp apply -f https://raw.githubusercontent.com/joetanx/conjur-k8s/main/cityapp-secretsprovider.yaml
+oc -n cityapp apply -f https://raw.githubusercontent.com/joetanx/conjur-ocp/main/cityapp-secretsprovider.yaml
 ```
 
 Verify that the application is deployed successfully:
 
-```console
-kubectl -n cityapp get pods -o wide
-```
+![image](https://github.com/joetanx/conjur-ocp/assets/90442032/81343f3a-ac03-41b1-9228-087419523cce)
 
-Browse to the Kubernetes node on port 30081 `http://<kube-node-fqdn>:30081` to verify that the application is working
+Open the application location (e.g. `http://secretsprovider-cityapp.apps.sno.vx/`)
 
 Notice that the database connection details list the credentials retrieved from Conjur:
 
-![image](images/pageCityappSecretsProvider.png)
+![image](https://github.com/joetanx/conjur-ocp/assets/90442032/53c3903b-a4de-46ae-af24-ab7d9bb525ae)
 
 ## 7. Deploy cityapp-secretless
 
@@ -296,7 +294,7 @@ The Secretless Broker will:
 
 Application connection flow with Secretless Broker:
 
-![image](images/architectureCityappSecretless.png)
+![image](https://github.com/joetanx/conjur-ocp/assets/90442032/5551f339-6508-404a-8ca7-6d87b99d346c)
 
 ### 7.2. Prepare the ConfigMap to be used by Secretless Broker
 
@@ -304,29 +302,28 @@ Secretless Broker needs some configuration to determine where to listen for new 
 
 - Ref: [Prepare the Secretless configuration](https://docs.cyberark.com/Product-Doc/OnlineHelp/AAM-DAP/Latest/en/Content/Integrations/k8s-ocp/k8s-secretless-sidecar.htm#PreparetheSecretlessconfiguration)
 
-We will map the `cityapp-secretless-cm.yaml` to the `cityapp` container using a ConfigMap
+We will map the `secretless-cm.yaml` to the `cityapp` container using a ConfigMap
 
 ☝️ Secretless Broker also need to locate Conjur to authenticate and retrieve credentials, this was done in the previous step where we loaded the `apps-cm` ConfigMap
 
 ```console
 curl -O https://raw.githubusercontent.com/joetanx/conjur-k8s/main/secretless-cm.yaml
-kubectl -n cityapp create configmap secretless-cm --from-file=secretless-cm.yaml && rm -f secretless-cm.yaml
+oc -n cityapp create configmap secretless-cm --from-file=secretless-cm.yaml && rm -f secretless-cm.yaml
 ```
 
 ### 7.3. Deploy the Secretless-based cityapp
 
 ```console
-kubectl -n cityapp apply -f https://raw.githubusercontent.com/joetanx/conjur-k8s/main/cityapp-secretless.yaml
+oc -n cityapp apply -f https://raw.githubusercontent.com/joetanx/conjur-ocp/main/cityapp-secretless.yaml
 ```
 
 Verify that the application is deployed successfully:
 
-```console
-kubectl -n cityapp get pods -o wide
-```
+![image](https://github.com/joetanx/conjur-ocp/assets/90442032/0d745d1a-c5f6-424f-99ad-ecd2fd53673d)
 
-Browse to the Kubernetes node on port 30082 `http://<kube-node-fqdn>:30082` to verify that the application is working
+Open the application location (e.g. `http://secretless-cityapp.apps.sno.vx/`)
 
-- Notice that the database connection details list that the application is connecting to `127.0.0.1` using empty credentials
+Notice that the database connection details list that the application is connecting to `127.0.0.1` using empty credentials
 
-![image](images/pageCityappSecretless.png)
+![image](https://github.com/joetanx/conjur-ocp/assets/90442032/99afe1d1-705a-4682-bdaa-b55ba81786c8)
+
