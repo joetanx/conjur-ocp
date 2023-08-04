@@ -59,7 +59,7 @@
 
 ④ The secrets provider container pushes the retrieved secrets to the application container
 
-⑤ The appliation conainter uses the secrets to access the sensitive resources
+⑤ The application container uses the secrets to access the sensitive resources
 
 ### 0.2. Setup guide overview
 
