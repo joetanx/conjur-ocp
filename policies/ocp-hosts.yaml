@@ -17,24 +17,24 @@
     # Define the application as a Conjur host in policy
     # Ref: https://docs.cyberark.com/conjur-enterprise/latest/en/Content/Integrations/k8s-ocp/cjr-k8s-authn-client-authjwt.htm
     - !host
-      id: system:serviceaccount:app-cje:p2f
+      id: system:serviceaccount:cityapp:p2f
       annotations:
-        authn-jwt/ocp/kubernetes.io/namespace: app-cje
+        authn-jwt/ocp/kubernetes.io/namespace: cityapp
         authn-jwt/ocp/kubernetes.io/serviceaccount/name: p2f
     - !host
-      id: system:serviceaccount:app-cje:p2s-env
+      id: system:serviceaccount:cityapp:p2s-env
       annotations:
-        authn-jwt/ocp/kubernetes.io/namespace: app-cje
+        authn-jwt/ocp/kubernetes.io/namespace: cityapp
         authn-jwt/ocp/kubernetes.io/serviceaccount/name: p2s-env
     - !host
-      id: system:serviceaccount:app-cje:p2s-vol
+      id: system:serviceaccount:cityapp:p2s-vol
       annotations:
-        authn-jwt/ocp/kubernetes.io/namespace: app-cje
+        authn-jwt/ocp/kubernetes.io/namespace: cityapp
         authn-jwt/ocp/kubernetes.io/serviceaccount/name: p2s-vol
     - !host
-      id: system:serviceaccount:app-cje:sl
+      id: system:serviceaccount:cityapp:sl
       annotations:
-        authn-jwt/ocp/kubernetes.io/namespace: app-cje
+        authn-jwt/ocp/kubernetes.io/namespace: cityapp
         authn-jwt/ocp/kubernetes.io/serviceaccount/name: sl
   - !grant
     role: !layer cityapp
