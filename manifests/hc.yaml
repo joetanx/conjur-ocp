@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: hc
+  namespace: cityapp
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    deployment: hc
+  type: LoadBalancer
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: hc
+  namespace: cityapp
+spec:
+  port:
+    targetPort: 8080
+  to:
+    kind: Service
+    name: hc
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hc
+  namespace: cityapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      deployment: hc
+  template:
+    metadata:
+      labels:
+        deployment: hc
+    spec:
+      containers:
+      - name: cityapp
+        image: docker.io/joetanx/cityapp:php
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: DBADDR
+          value: mysql.vx
+        - name: DBPASS
+          value: Cyberark1
+        - name: DBUSER
+          value: cityapp
