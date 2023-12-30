@@ -1,0 +1,47 @@
+apiVersion: conjur.cyberark.com/v1
+kind: ConjurFollower
+metadata:
+  name: follower
+  labels:
+    app: follower
+  namespace: conjur
+spec:
+  master:
+    audience: 'https://conjur.vx/'
+    authentication: authn-jwt
+    authenticatorID: ocp
+    caCertificateFrom:
+      configMapKeyRef:
+        key: conjur-ca.pem
+        name: ca-cert
+    replicationSet: full
+    account: cyberark
+    hostname: conjur.vx
+  configFileFrom:
+    configMapKeyRef:
+      key: conjur.yml
+      name: conjur-config
+  imagePullPolicy: IfNotPresent
+  service:
+    sessionAffinity: None
+    type: ClusterIP
+  images:
+    configurator: >-
+      registry.connect.redhat.com/cyberark/conjur-openshift-follower-configurator@sha256:45a8ba1cbe6d678f99e75bd433a528a9d585f0e10740d10402029ff60518ccf9
+    conjur: >-
+      registry.connect.redhat.com/cyberark/conjur-openshift-follower-conjur@sha256:8e55d0d1d5c0fb6c6dc4a57d36d3f6bb61e60331714746ce8ad3d25168a69673
+    failoverRebaser: >-
+      registry.connect.redhat.com/cyberark/conjur-openshift-follower-failover-rebaser@sha256:f044a5e4a52025e9c1be9b413cc4dbf5b083e4fc66419c752447ccc7ff49f6da
+    info: >-
+      registry.connect.redhat.com/cyberark/conjur-openshift-follower-info@sha256:7da716e3a3d3721feaaef5c66901b405066849c8993fa50c6f3d4c3ca622818e
+    nginx: >-
+      registry.connect.redhat.com/cyberark/conjur-openshift-follower-nginx@sha256:e27c6f0a1ba24e97daf4c4088372d33f91be027694f7f093344b4f8bd4d13b6a
+    postgres: >-
+      registry.connect.redhat.com/cyberark/conjur-openshift-follower-postgres@sha256:ba2368c64e8cf7838a579dea625637ddc2f6ad3f2fe76a6743d50e5c89800058
+    syslogNg: >-
+      registry.connect.redhat.com/cyberark/conjur-openshift-follower-syslog-ng@sha256:e0c17f95968bc5ef885a02c6ac5132909058a4b48aa8a4a78510ddb16c665e9d
+  resourceNames:
+    deployment: follower
+    service: follower
+    serviceAccount: follower
+  replicas: 1
