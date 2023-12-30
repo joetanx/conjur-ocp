@@ -410,7 +410,7 @@ The BuildConfig `cityapp-buildconfig.yaml` provided in this repository defines t
 Apply it and `start-build` to build the image and push it to the Openshift image registry:
 
 ```console
-oc -n cityapp apply -f https://raw.githubusercontent.com/joetanx/conjur-ocp/main/cityapp-buildconfig.yaml
+oc -n cityapp apply -f https://github.com/joetanx/conjur-ocp/raw/main/manifests/cityapp-buildconfig.yaml
 oc start-build cityapp
 ```
 
